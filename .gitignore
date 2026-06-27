@@ -53,3 +53,8 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+
+## VS-Code and other "compiled" files
+build
+version.h
