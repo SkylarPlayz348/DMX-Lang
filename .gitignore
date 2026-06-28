@@ -58,3 +58,5 @@ dkms.conf
 ## VS-Code and other "compiled" files
 build
 version.h
+research/write-midi
+research/manual_midi_file.midi
