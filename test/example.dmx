@@ -1,0 +1,13 @@
+.controller obey70
+.bpm 100
+.channel 4
+.commands
+    scene 1-7;
+    delta 10;
+    scene 5-7;
+    delta 5;
+    blackout;
+    scene 15-1;
+    blackout;
+    delta 5;
+    blackout;

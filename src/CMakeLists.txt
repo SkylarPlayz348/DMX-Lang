@@ -1,7 +1,4 @@
-project(dmxc)
+project(${PROJECT_NAME})
 
-set(SOURCES
-    main.c
-)
-
-add_executable(dmxc ${SOURCES})
+add_subdirectory(compiler)
+add_subdirectory(visualizer)
