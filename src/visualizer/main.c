@@ -3,7 +3,7 @@
 
 #include <SDL3/SDL.h>
 
-#include "../compiler/dmx.h"
+#include "../compiler/dmx-interpreter.h"
 
 typedef enum VisualizerColor
 {

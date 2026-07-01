@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "midi.h"
-
 typedef struct DMX_File
 {
     int bpm;

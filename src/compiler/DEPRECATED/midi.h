@@ -1,5 +1,5 @@
 /*
-    midi.h is a file where all our custom MIDI classes and stuff go for our compiler
+    midi.h was a file where all our custom MIDI classes and stuff go for our compiler
 */
 #pragma once
 
@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-/**********From github.com/pvrs12/midi_library/blob/master/src/midi.c**********/
+/**********From https://github.com/pvrs12/midi_library/blob/master/src/midi.c**********/
 #define LITTLE_ENDIAN 0x41424344UL
 #define BIG_ENDIAN    0x44434241UL
 #pragma GCC diagnostic push
@@ -35,6 +35,8 @@
 	#error "Cannot determine endianness. Good luck."
 #endif //ENDIAN_ORDER
 /*******************************************************************************/
+
+typedef
 
 typedef struct MIDI_Header
 {
