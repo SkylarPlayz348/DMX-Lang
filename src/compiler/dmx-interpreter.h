@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct DMX_File
 {
@@ -11,3 +12,6 @@ typedef struct DMX_File
     char *controller;
     FILE *handler;
 } DMX_File;
+
+bool check_dmx_file(DMX_File *dmx);
+bool parse_dmx_file(DMX_File *dmx);

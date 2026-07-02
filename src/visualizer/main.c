@@ -25,6 +25,7 @@ typedef struct VisualizerAppData
     bool running;
 } VisualizerAppData;
 
+/* Future Proofing when I actually get assets */
 void change_theme(VisualizerAppData visualizer)
 {
     switch(visualizer.theme)

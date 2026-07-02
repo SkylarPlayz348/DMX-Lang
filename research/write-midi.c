@@ -32,13 +32,17 @@ int main()
 // Setup like my controller would need it
 int main()
 {
-    struct Midi *m = malloc(sizeof(struct Midi));
+    Midi *m = malloc(sizeof(Midi));
     FILE *f = fopen("manual_midi_file.midi", "wb+");
+    if(!f){
+        printf("Failed to open manual_midi_file.midi");
+        return -1;
+    }
     new_midi(m);
     midi_add_header(m, 0, 1, 384);
 
-    struct MidiTrackChunk *track = midi_add_track(m);
-    struct EventString *e = malloc(sizeof(struct EventString));
+    MidiTrackChunk *track = midi_add_track(m);
+    struct EventString *e = malloc(sizeof(EventString));
 
     e = new_event_string(e);
     e = add_meta_message(e, META_TRACK_NAME);
