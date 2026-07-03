@@ -1,13 +1,16 @@
-.controller obey70
+.controller obey70 ;alias in DMXD file
 .bpm 100
 .channel 4
 .commands
-    scene 1-7;
-    delta 10;
-    scene 5-7;
-    delta 5;
-    blackout;
-    scene 15-1;
-    blackout;
-    delta 5;
-    blackout;
+    ;This is a comment
+    loop 5 ;loop x where x is the amount of times to loop before exiting
+        scene 1-7
+        delta 10 ;delta x where x is any number in seconds
+        scene 5-7
+        delta 5
+    end ; Declares end of commands to loop
+    blackout
+    scene 15-1
+    blackout
+    delta 5
+    blackout

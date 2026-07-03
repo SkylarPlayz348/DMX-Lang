@@ -32,48 +32,114 @@ int main()
 // Setup like my controller would need it
 int main()
 {
-    Midi *m = malloc(sizeof(Midi));
-    FILE *f = fopen("manual_midi_file.midi", "wb+");
-    if(!f){
-        printf("Failed to open manual_midi_file.midi");
-        return -1;
-    }
-    new_midi(m);
-    midi_add_header(m, 0, 1, 384);
+    //create a new midi
+	struct Midi* m = malloc(sizeof(struct Midi));
+	new_midi(m);
+    int delta = 0;
+	//set it to mode 0, with 1 track, and 384 ticks per quarternote
+	midi_add_header(m, 0, 1, 384);
 
-    MidiTrackChunk *track = midi_add_track(m);
-    struct EventString *e = malloc(sizeof(EventString));
+	//add a track
+	struct MidiTrackChunk* track = midi_add_track(m);
 
-    e = new_event_string(e);
-    e = add_meta_message(e, META_TRACK_NAME);
-    e = add_string(e, "Obey 70 Channel 4", strlen("Obey 70 Channel 4"));
-    track_add_event_full(track, 0, e->event_string, e->event_string_len);
-    free_event_string(e);
+	struct EventString* e = malloc(sizeof(struct EventString));
 
-    e = new_event_string(e);
-    e = add_voice_message(e, VOICE_NOTE_ON, CHANNEL_4);
-    e = add_byte(e, 120);
-    e = add_byte(e, VELOCITY_MAX);
-    track_add_event_full(track, 0, e->event_string, e->event_string_len);
-    free_event_string(e);
+	//add a meta event which specifies the track name as "Trumpet"
+	e = new_event_string(e);
+	e = add_meta_message(e, META_TRACK_NAME);
+	e = add_string(e, "Obey 70 Channel 4", strlen("Obey 70 Channel 4"));
+	track_add_event_full(track, 0, e->event_string, e->event_string_len);
+	free_event_string(e);
 
-    e = new_event_string(e);
-    e = add_voice_message(e, VOICE_NOTE_OFF, CHANNEL_4);
-    e = add_byte(e, 120);
-    e = add_byte(e, VELOCITY_MAX);
-    track_add_event_full(track, 384, e->event_string, e->event_string_len);
-    free_event_string(e);
+	// scene 1-7
+	e = new_event_string(e);
+	e = add_voice_message(e, VOICE_NOTE_ON, CHANNEL_4);
+	e = add_byte(e, NOTE_FSN1);
+	e = add_byte(e, VELOCITY_MAX);
+	track_add_event_full(track, delta, e->event_string, e->event_string_len);
+	free_event_string(e);
 
-    e = new_event_string(e);
+	e = new_event_string(e);
+	e = add_voice_message(e, VOICE_NOTE_OFF, CHANNEL_4);
+	e = add_byte(e, NOTE_FSN1);
+	e = add_byte(e, VELOCITY_MAX);
+	track_add_event_full(track, delta += 384, e->event_string, e->event_string_len);
+	free_event_string(e);
+
+    // scene 5-7
+	e = new_event_string(e);
+	e = add_voice_message(e, VOICE_NOTE_ON, CHANNEL_4);
+	e = add_byte(e, NOTE_D2);
+	e = add_byte(e, VELOCITY_MAX);
+	track_add_event_full(track, delta, e->event_string, e->event_string_len);
+	free_event_string(e);
+
+	e = new_event_string(e);
+	e = add_voice_message(e, VOICE_NOTE_OFF, CHANNEL_4);
+	e = add_byte(e, NOTE_D2);
+	e = add_byte(e, VELOCITY_MAX);
+	track_add_event_full(track, delta += 384, e->event_string, e->event_string_len);
+	free_event_string(e);
+
+    // blackout
+	e = new_event_string(e);
+	e = add_voice_message(e, VOICE_NOTE_ON, CHANNEL_4);
+	e = add_byte(e, NOTE_FS9);
+	e = add_byte(e, VELOCITY_MAX);
+	track_add_event_full(track, delta, e->event_string, e->event_string_len);
+	free_event_string(e);
+
+	e = new_event_string(e);
+	e = add_voice_message(e, VOICE_NOTE_OFF, CHANNEL_4);
+	e = add_byte(e, NOTE_FS9);
+	e = add_byte(e, VELOCITY_MAX);
+	track_add_event_full(track, delta += 384, e->event_string, e->event_string_len);
+	free_event_string(e);
+
+    // scene 15-1
+	e = new_event_string(e);
+	e = add_voice_message(e, VOICE_NOTE_ON, CHANNEL_4);
+	e = add_byte(e, NOTE_E8);
+	e = add_byte(e, VELOCITY_MAX);
+	track_add_event_full(track, delta, e->event_string, e->event_string_len);
+	free_event_string(e);
+
+	e = new_event_string(e);
+	e = add_voice_message(e, VOICE_NOTE_OFF, CHANNEL_4);
+	e = add_byte(e, NOTE_E8);
+	e = add_byte(e, VELOCITY_MAX);
+	track_add_event_full(track, delta += 384, e->event_string, e->event_string_len);
+	free_event_string(e);
+
+    // blackout
+	e = new_event_string(e);
+	e = add_voice_message(e, VOICE_NOTE_ON, CHANNEL_4);
+	e = add_byte(e, NOTE_FS9);
+	e = add_byte(e, VELOCITY_MAX);
+	track_add_event_full(track, delta, e->event_string, e->event_string_len);
+	free_event_string(e);
+
+	e = new_event_string(e);
+	e = add_voice_message(e, VOICE_NOTE_OFF, CHANNEL_4);
+	e = add_byte(e, NOTE_FS9);
+	e = add_byte(e, VELOCITY_MAX);
+	track_add_event_full(track, delta += 384, e->event_string, e->event_string_len);
+	free_event_string(e);
+
+	//end the track
+	e = new_event_string(e);
 	e = add_meta_message(e, META_END);
 	e = add_string(e, "", 0);
 	track_add_event_full(track, 0, e->event_string, e->event_string_len);
-    free_event_string(e);
+	free_event_string(e);
 
-    write_midi(m, f);
-    fclose(f);
-    free(m);
-    free(e);
-    printf("Wrote Midi File!\n");
-    return 0;
+	free(e);
+
+	FILE* f = fopen("manual_midi_file.midi", "wb+");
+	write_midi(m, f);
+	fclose(f);
+	printf("Write Midi File\n");
+	
+
+	return 0;
 }

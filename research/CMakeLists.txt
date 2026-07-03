@@ -5,4 +5,4 @@ set(SOURCES
 )
 
 add_executable(write-midi ${SOURCES})
-target_link_libraries(write-midi midi)
+target_link_libraries(write-midi PRIVATE vendor)

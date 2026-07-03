@@ -5,8 +5,20 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
+#include <stdint.h>
+#include <math.h>
 
 #include "dmx-interpreter.h"
+
+static void trim(char *s)
+{
+    char *start = s;
+    while(isspace((unsigned char)*start))
+    memmove(s, start, strlen(start) +1);
+    size_t len = strlen(s);
+    while(len > 0 && isspace((unsigned char)s[len-1]))s[--len] = 0;
+}
 
 bool check_dmx_file(DMX_File *dmx)
 {
@@ -16,6 +28,62 @@ bool check_dmx_file(DMX_File *dmx)
     if(strncmp(dmx_check, controller, 12) != 0)
     {
         return false;
+    }
+    return true;
+};
+
+bool load_dmxd_file(DMXD_File *dmxd)
+{
+    char dmxd_line[256];
+    while(fgets(dmxd_line, sizeof(dmxd_line), dmxd->handler))
+    {
+        char *eq = strchr(dmxd_line, '=');
+        if(!eq)
+            continue;
+
+        char keypart[200];
+        size_t klen = (size_t)(eq-dmxd_line);
+        if(klen >= sizeof(keypart))
+            klen = keypart -1;
+
+        strncpy(keypart, dmxd_line, klen);
+        keypart[klen] = 0;
+
+        char *colon = strchr(keypart, ':');
+        if(colon)
+            *colon = 0;
+
+        trim(keypart);
+        if(keypart[0] == 0)
+            continue;
+
+        char name[200] = {0}, rest[64] = {0};
+        int n = sscanf(keypart, "%31s %63s", name, rest);
+        if(name[0] == 0)
+            continue;
+
+        int base_value = 0;
+        sscanf(eq+1, "%d", &base_value);
+
+        DMXD_Command command;
+        memset(&command, 0, sizeof(DMXD_Command));
+        snprintf(command.name, sizeof(command.name), "%s", name);
+        command.base = base_value;
+
+        int bank, div;
+        if(n == 2 && sscanf("%d-x%d", &bank, &div))
+        {
+            command.mode = COMMAND_RANGE;
+            command.bank = bank;
+            command.div = div;
+        } else {
+            command.mode = COMMAND_EXACT;
+            command.num = (n=2)?atoi(rest) :-1;
+        }
+
+        dmxd->commands = realloc(dmxd->commands, sizeof(DMXD_Command)*(dmxd->command_count +1));
+        dmxd->commands[dmxd->command_count++]=command;
+        printf("Found Command: %s\n", name);
     }
     return true;
 };
