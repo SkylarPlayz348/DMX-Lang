@@ -1,4 +1,4 @@
-project(dmx-lang-visualizer)
+project(dmx-lang-visualizer VERSION 0.0.1)
 
 set(SOURCES
     main.c

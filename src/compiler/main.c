@@ -8,8 +8,8 @@
 
 int main(int argc, char **argv)
 {
-    DMX_File dmx;
-    DMXD_File dmxd;
+    DMX_File dmx = {0};
+    DMXD_File dmxd = {0};
     if(argc <= 3){
         printf("Usage: dmxc [Input DMX File] [Input DMXD File] [Output Midi File]\n");
         return 0;
@@ -35,7 +35,7 @@ int main(int argc, char **argv)
         return -1;
     }
     printf("Loading DMXD Definitions\n");
-    if(load_dmxd_file(&dmxd))
+    if(!load_dmxd_file(&dmxd))
     {
         printf("Failed to Load DMX Definitions\n");
         return -1;

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28.3)
-project(DMX-Lang VERSION 0.0.0)
+project(DMX-Lang VERSION 0.3.0)
 
 if(WIN32)
     set(TARGET_OS "Windows")
