@@ -14,10 +14,10 @@
 static void trim(char *s)
 {
     char *start = s;
-    while(isspace((unsigned char)*start))
+    while(isspace((unsigned char)*start)) start++;
     memmove(s, start, strlen(start) +1);
     size_t len = strlen(s);
-    while(len > 0 && isspace((unsigned char)s[len-1]))s[--len] = 0;
+    while(len > 0 && isspace((unsigned char)s[len-1])) s[--len] = 0;
 }
 
 bool check_dmx_file(DMX_File *dmx)
@@ -71,14 +71,14 @@ bool load_dmxd_file(DMXD_File *dmxd)
         command.base = base_value;
 
         int bank, div;
-        if(n == 2 && sscanf("%d-x%d", &bank, &div))
+        if(n == 2 && sscanf(rest,"%d-x%d", &bank, &div))
         {
             command.mode = COMMAND_RANGE;
             command.bank = bank;
             command.div = div;
         } else {
             command.mode = COMMAND_EXACT;
-            command.num = (n=2)?atoi(rest) :-1;
+            command.num = (n==2)?atoi(rest) :-1;
         }
 
         dmxd->commands = realloc(dmxd->commands, sizeof(DMXD_Command)*(dmxd->command_count +1));
