@@ -6,7 +6,7 @@ set(SOURCES
 )
 
 add_library(${PROJECT_NAME} ${SOURCES})
-target_include_directories(${PROJECT_NAME} PUBLIC src)
+target_include_directories(${PROJECT_NAME} PUBLIC midi/src)
 
 project(${CMAKE_PROJECT_NAME})
 
