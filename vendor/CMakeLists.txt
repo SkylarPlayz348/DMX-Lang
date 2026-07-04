@@ -12,6 +12,13 @@ project(${CMAKE_PROJECT_NAME})
 
 set(BUILD_SHARED_LIBS OFF)
 
+set(SDL_AUDIO OFF)
+set(SDL_CAMERA OFF)
+set(SDL_HAPTIC OFF)
+set(SDL_JOYSTICK OFF)
+set(SDL_POWER OFF)
+set(SDL_SENSOR OFF)
+
 add_subdirectory(SDL)
 
 add_library(vendor INTERFACE)
