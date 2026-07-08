@@ -16,6 +16,7 @@ typedef struct DMX_File
     int bpm;
     int channel;
     char *controller;
+    int instruction_count;
     FILE *handler;
 } DMX_File;
 
@@ -31,6 +32,7 @@ typedef struct DMXD_Command
 
 typedef struct DMXD_File
 {
+    char alias[64];
     DMXD_Command *commands;
     int command_count;
     FILE *handler;

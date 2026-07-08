@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     }
     printf("Parsed DMX File\n");
     printf("Writing Midi File\n");
-    if(!write_midi_file(argv[3])){
+    if(!write_midi_file(argv[3], &dmx, &dmxd)){
         printf("Failed to Write Midi File\n");
     }
     printf("Wrote Midi File\n");

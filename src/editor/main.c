@@ -20,10 +20,12 @@ typedef struct VisualizerAppData
     SDL_Renderer *renderer;
     SDL_Event event;
     SDL_SystemTheme theme;
+    SDL_Thread *color_thread;
     SDL_Thread *timer_thread;
     VisualizerColor color;
     int w,h;
-    SDL_AtomicInt timer;
+    int delta;
+    int timer;
     char timer_text[256];
     DMX_File *file;
     bool ready;
@@ -85,12 +87,28 @@ void render_color(VisualizerAppData* visualizer)
     }
 }
 
-void change_color(VisualizerAppData *visualizer)
+int change_color(void *data)
 {
-    if(visualizer->color == VISUALIZER_WHITE)
-        visualizer->color = VISUALIZER_RED;
-    else
-        visualizer->color++;
+    VisualizerThread *td = (VisualizerThread *)data;
+    VisualizerAppData *visualizer = td->visualizer;
+
+    while(SDL_GetAtomicInt(&td->running)){
+        if(!visualizer->ready)
+            continue;
+        switch(visualizer->color){
+            case VISUALIZER_WHITE:
+                visualizer->color = VISUALIZER_RED;
+                break;
+            default:
+                visualizer->color++;
+                break;
+        }
+        if(visualizer->color > 5){
+            visualizer->color = VISUALIZER_RED;
+        }
+        SDL_Delay(visualizer->delta);
+    }
+    return 0;
 }
 
 int timer(void* data){
@@ -99,23 +117,18 @@ int timer(void* data){
     while(SDL_GetAtomicInt(&td->running)){
         if(!visualizer->ready)
             continue;
-        SDL_SetAtomicInt(&visualizer->timer, SDL_GetAtomicInt(&visualizer->timer)-1);
-        if(SDL_GetAtomicInt(&visualizer->timer) <= 0)
-            SDL_SetAtomicInt(&visualizer->timer, 1000);
+        visualizer->timer--;
+        if(visualizer->timer <= 0)
+            visualizer->timer = visualizer->delta;
         SDL_Delay(1);
     }
-    return 0;
-}
-
-SDLCALL *file_dialog_handler(void *userdata, const char * const *filelist, int filter)
-{
-    SDL_Log("File Dialog Handled(NOT)");
     return 0;
 }
 
 int main()
 {
     VisualizerAppData visualizer;
+    VisualizerThread color_td;
     VisualizerThread timer_td;
     if(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
     {
@@ -128,16 +141,18 @@ int main()
         SDL_Quit();
         return -1;
     }
-    SDL_SetAtomicInt(&visualizer.timer, 1000); // 1 second
-    visualizer.color = VISUALIZER_RED;
+    visualizer.delta = 10000; // 10 second
+    visualizer.timer = visualizer.delta;
+    visualizer.running = true;
+    color_td.visualizer = &visualizer;
+    SDL_SetAtomicInt(&color_td.running, 1);
     timer_td.visualizer = &visualizer;
     SDL_SetAtomicInt(&timer_td.running, 1);
+    visualizer.color_thread = SDL_CreateThread(change_color, "Color Change Thread", &color_td);
     visualizer.timer_thread = SDL_CreateThread(timer, "Timer Thread", &timer_td);
     SDL_GetWindowSize(visualizer.window, &visualizer.w, &visualizer.h);
-    const int debug_charsize = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
-    // SDL_ShowOpenFileDialog(file_dialog_handler, NULL, visualizer.window, NULL, NULL, NULL, false);
+    const int charsize = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
     visualizer.ready = true;
-    visualizer.running = true;
     while(visualizer.running)
     {
         while(SDL_PollEvent(&visualizer.event))
@@ -150,21 +165,32 @@ int main()
                 case SDL_EVENT_SYSTEM_THEME_CHANGED:
                     visualizer.theme = SDL_GetSystemTheme();
                     break;
+                case SDL_EVENT_KEY_DOWN:
+                    switch(visualizer.event.key.key)
+                    {
+                        case SDLK_UP:
+                            visualizer.delta++;
+                            break;
+                        case SDLK_DOWN:
+                            if(visualizer.delta != 1)
+                                visualizer.delta--;
+                            break;
+                        visualizer.timer = visualizer.delta;
+                    }
+                    break;
                 case SDL_EVENT_WINDOW_RESIZED:
                     SDL_GetWindowSize(visualizer.window, &visualizer.w, &visualizer.h);
                     break;
             }
         };
-        render_color(&visualizer);
+        //render_color(&visualizer);
+        SDL_SetRenderDrawColor(visualizer.renderer, 0, 0, 0, 255);
         SDL_RenderClear(visualizer.renderer);
-        // clear_console();
-        SDL_Log("Visualizer Color: %i\nDelta: %i", visualizer.color, visualizer.timer);
-        // SDL_Log("Timer: %i", visualizer.timer);
+        /* clear_console();
+        SDL_Log("Visualizer Color: %i\nDelta: %i", visualizer.color, visualizer.delta); */
+        SDL_Log("Timer: %i", visualizer.timer);
         sprintf(visualizer.timer_text, "Delta: %i", visualizer.timer);
-        int remaining_ms = SDL_GetAtomicInt(&visualizer.timer);
-        if(remaining_ms <= 0)
-            change_color(&visualizer);
-        switch(visualizer.color)
+        /* switch(visualizer.color)
         {
             default :
                 SDL_SetRenderDrawColor(visualizer.renderer, 255, 255, 255, 255);
@@ -174,8 +200,11 @@ int main()
             case VISUALIZER_WHITE:
                 SDL_SetRenderDrawColor(visualizer.renderer, 0, 0, 0, 255);
                 break;
-        }
-        SDL_RenderDebugText(visualizer.renderer, (float)((visualizer.w - (debug_charsize *strlen(visualizer.timer_text))) / 2), (float)(visualizer.h / 2), visualizer.timer_text);
+        } */
+        SDL_SetRenderDrawColor(visualizer.renderer, 255, 255, 255, 255);
+        SDL_SetRenderScale(visualizer.renderer, 1.0f, 1.0f);
+        SDL_RenderDebugText(visualizer.renderer, (float)(visualizer.w / 2), (float)(visualizer.h / 2), visualizer.timer_text);
+        SDL_SetRenderScale(visualizer.renderer, 1.0f, 1.0f);
         SDL_RenderPresent(visualizer.renderer);
     };
 

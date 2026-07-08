@@ -20,6 +20,13 @@ static void trim(char *s)
     while(len > 0 && isspace((unsigned char)s[len-1])) s[--len] = 0;
 }
 
+void strip_comment(char *s)
+{
+    char *semi = strchr(s, ';');
+    if(semi)
+        *semi = 0;
+}
+
 bool check_dmx_file(DMX_File *dmx)
 {
     char dmx_check[12];
