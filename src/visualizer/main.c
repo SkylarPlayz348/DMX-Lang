@@ -29,6 +29,7 @@ typedef struct VisualizerAppData
     char timer_text[256];
     int w,h;
     bool ready;
+    bool blackout;
 
     DMX_File dmx;
     DMXD_File dmxd;
@@ -128,7 +129,9 @@ int playback(void *data)
             bool is_blackout = strcmp(instr->command, "blackout") == 0;
             if(is_blackout)
             {
-                visualizer->color = VISUALIZER_BLACKOUT;
+                if((visualizer->blackout = !visualizer->blackout))
+                    visualizer->color = VISUALIZER_BLACKOUT;
+                change_color(visualizer);
                 continue;
             }
 
@@ -236,7 +239,7 @@ int main()
         };
         render_color(&visualizer);
         SDL_RenderClear(visualizer.renderer);
-        sprintf(visualizer.timer_text, "Delta: %i", SDL_GetAtomicInt(&visualizer.timer_ms));
+        sprintf(visualizer.timer_text, "Delta: %i", SDL_GetAtomicInt(&visualizer.timer_ms) / 1000);
         int remaining_ms = SDL_GetAtomicInt(&visualizer.timer_ms);
         if(remaining_ms > 0)
         {
