@@ -315,3 +315,34 @@ bool resolve_note(DMXD_File *dmxd, DMX_Instruction *instr, int *note_out)
     }
     return false;
 }
+
+// Just a simple wrapper for the main loop
+bool visualizer_load_sequence(DMX_File *dmx, DMXD_File *dmxd)
+{
+    if(!check_dmx_file(dmx))
+    {
+        printf("Input file is not a valid DMX File\n");
+        return false;
+    }
+    printf("Valid DMX File\n");
+    printf("Loading DMXD Definitions\n");
+    if(!load_dmxd_file(dmxd))
+    {
+        printf("Failed to Load DMX Definitions\n");
+        return false;
+    }
+    printf("Parsing DMX File\n");
+    if(!parse_dmx_file(dmx))
+    {
+        printf("Failed to parse DMX File\n");
+        return false;
+    }
+    printf("Parsed DMX File\n");
+    if(dmxd->alias[0] && dmx->controller[0] && strcmp(dmx->controller, dmxd->alias) != 0)
+    {
+        printf("Warning: DMX controller '%s' does not match DMXD alias '%s'\n",
+               dmx->controller, dmxd->alias);
+        return false;
+    }
+    return true;
+}

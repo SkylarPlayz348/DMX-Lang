@@ -7,6 +7,7 @@
 
 typedef enum VisualizerColor
 {
+    VISUALIZER_BLACKOUT=-1,
     VISUALIZER_RED=0,
     VISUALIZER_GREEN,
     VISUALIZER_BLUE,
@@ -20,30 +21,16 @@ typedef struct VisualizerAppData
     SDL_Renderer *renderer;
     SDL_Event event;
     SDL_SystemTheme theme;
-    SDL_Thread *timer_thread;
-    VisualizerColor color;
-    int w,h;
-    SDL_AtomicInt timer;
-    char timer_text[256];
-    DMX_File *file;
-    bool ready;
-    bool running;
-} VisualizerAppData;
-
-typedef struct VisualizerThread
-{
-    VisualizerAppData *visualizer;
+    SDL_Thread *playback_thread;
     SDL_AtomicInt running;
-}VisualizerThread;
+    VisualizerColor color;
+    SDL_AtomicInt timer_ms;
+    char timer_text[256];
+    int w,h;
 
-/* void clear_console(void) {
-#if defined(_WIN32) || defined(_WIN64)
-    system("cls");  // Windows
-#else
-    printf("\033[2J\033[H");
-    fflush(stdout);
-#endif
-} */
+    DMX_File *dmx;
+    DMXD_File *dmxd;
+} VisualizerAppData;
 
 /* Future Proofing when I actually get assets */
 void change_theme(VisualizerAppData visualizer)
@@ -66,6 +53,8 @@ void render_color(VisualizerAppData* visualizer)
 {
     switch(visualizer->color)
     {
+        case VISUALIZER_BLACKOUT:
+            SDL_SetRenderDrawColor(visualizer->renderer, 0, 0, 0, 255);
         case VISUALIZER_RED:
             SDL_SetRenderDrawColor(visualizer->renderer, 255, 0, 0, 255);
             break;
@@ -87,22 +76,60 @@ void render_color(VisualizerAppData* visualizer)
 
 void change_color(VisualizerAppData *visualizer)
 {
-    if(visualizer->color == VISUALIZER_WHITE)
+    if(visualizer->color == VISUALIZER_WHITE || visualizer->color == VISUALIZER_BLACKOUT)
         visualizer->color = VISUALIZER_RED;
     else
         visualizer->color++;
 }
 
-int timer(void* data){
-    VisualizerThread *td = (VisualizerThread *)data;
-    VisualizerAppData *visualizer = td->visualizer;
-    while(SDL_GetAtomicInt(&td->running)){
-        if(!visualizer->ready)
-            continue;
-        SDL_SetAtomicInt(&visualizer->timer, SDL_GetAtomicInt(&visualizer->timer)-1);
-        if(SDL_GetAtomicInt(&visualizer->timer) <= 0)
-            SDL_SetAtomicInt(&visualizer->timer, 1000);
+void interruptible_delay(VisualizerAppData *visualizer, int ms, bool countdown)
+{
+    while(ms > 0 && SDL_GetAtomicInt(&visualizer->running))
+    {
+        if(countdown)
+            SDL_SetAtomicInt(&visualizer->timer_ms, ms);
+        int chunk = ms > 50 ? 50 : ms;
+        SDL_Delay((Uint32)chunk);
+        ms -= chunk;
     }
+    if(countdown)
+        SDL_SetAtomicInt(&visualizer->timer_ms, 0);
+}
+
+int playback(void *data)
+{
+    VisualizerAppData *visualizer = (VisualizerAppData *) data;
+    while(SDL_GetAtomicInt(&visualizer->running))
+    {
+        if(visualizer->dmx->instruction_count == 0)
+            continue;
+
+        VisualizerColor color = VISUALIZER_RED;
+
+        for(int i = 0; i < visualizer->dmx->instruction_count && SDL_GetAtomicInt(&visualizer->running); i++)
+        {
+            const DMX_Instruction *instr = &visualizer->dmx->instructions[i];
+
+            if(instr->kind == INSTR_DELAY)
+            {
+                interruptible_delay(visualizer, instr->seconds * 1000, true);
+                continue;
+            }
+
+            bool is_blackout = strcmp(instr->command, "blackout") == 0;
+            if(is_blackout)
+            {
+                visualizer->color = VISUALIZER_BLACKOUT;
+                continue;
+            }
+
+            change_color(visualizer);
+        }
+    }
+}
+
+int timer(void* data){
+    // Trying to compile before breaking stuff with actual playback thread
     return 0;
 }
 
@@ -115,7 +142,6 @@ int *file_dialog_handler(void *userdata, const char * const *filelist, int filte
 int main()
 {
     VisualizerAppData visualizer;
-    VisualizerThread timer_td;
     if(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
     {
         SDL_Log("Failed to Load SDL3: %s", SDL_GetError());
@@ -127,24 +153,19 @@ int main()
         SDL_Quit();
         return -1;
     }
-    SDL_SetAtomicInt(&visualizer.timer, 1000); // 1 second
-    visualizer.color = VISUALIZER_RED;
-    timer_td.visualizer = &visualizer;
-    SDL_SetAtomicInt(&timer_td.running, 1);
-    visualizer.timer_thread = SDL_CreateThread(timer, "Timer Thread", &timer_td);
+    visualizer.playback_thread = SDL_CreateThread(timer, "Playback Thread", &visualizer);
     SDL_GetWindowSize(visualizer.window, &visualizer.w, &visualizer.h);
     const int debug_charsize = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
     // SDL_ShowOpenFileDialog(file_dialog_handler, NULL, visualizer.window, NULL, NULL, NULL, false);
-    visualizer.ready = true;
-    visualizer.running = true;
-    while(visualizer.running)
+    SDL_SetAtomicInt(&visualizer.running, 1);
+    while(SDL_GetAtomicInt(&visualizer.running) == 1)
     {
         while(SDL_PollEvent(&visualizer.event))
         {
             switch(visualizer.event.type)
             {
                 case SDL_EVENT_QUIT:
-                    visualizer.running = false;
+                    SDL_SetAtomicInt(&visualizer.running, 0);
                     break;
                 case SDL_EVENT_SYSTEM_THEME_CHANGED:
                     visualizer.theme = SDL_GetSystemTheme();
@@ -157,24 +178,21 @@ int main()
         render_color(&visualizer);
         SDL_RenderClear(visualizer.renderer);
         // clear_console();
-        SDL_Log("Visualizer Color: %i\nDelta: %i", visualizer.color, SDL_GetAtomicInt(&visualizer.timer));
+        SDL_Log("Visualizer Color: %i\nDelta: %i", visualizer.color, SDL_GetAtomicInt(&visualizer.timer_ms));
         // SDL_Log("Timer: %i", visualizer.timer);
-        sprintf(visualizer.timer_text, "Delta: %i", SDL_GetAtomicInt(&visualizer.timer));
-        int remaining_ms = SDL_GetAtomicInt(&visualizer.timer);
-        if(remaining_ms <= 0)
-            change_color(&visualizer);
-        switch(visualizer.color)
+        sprintf(visualizer.timer_text, "Delta: %i", SDL_GetAtomicInt(&visualizer.timer_ms));
+        int remaining_ms = SDL_GetAtomicInt(&visualizer.timer_ms);
+        if(remaining_ms > 0)
         {
-            default :
-                SDL_SetRenderDrawColor(visualizer.renderer, 255, 255, 255, 255);
-                break;
-            case VISUALIZER_AMBER:
-            case VISUALIZER_GREEN:
-            case VISUALIZER_WHITE:
-                SDL_SetRenderDrawColor(visualizer.renderer, 0, 0, 0, 255);
-                break;
+            Uint8 r, g, b, a;
+            SDL_GetRenderDrawColor(visualizer.renderer, &r, &g, &b, &a);
+            int luma = (r * 299 + g * 587 + b * 114) / 1000;
+                if(luma > 140)
+                    SDL_SetRenderDrawColor(visualizer.renderer, 0, 0, 0, 255);
+                else
+                    SDL_SetRenderDrawColor(visualizer.renderer, 255, 255, 255, 255);
+            SDL_RenderDebugText(visualizer.renderer, (float)((visualizer.w - (debug_charsize *strlen(visualizer.timer_text))) / 2), (float)(visualizer.h / 2), visualizer.timer_text);
         }
-        SDL_RenderDebugText(visualizer.renderer, (float)((visualizer.w - (debug_charsize *strlen(visualizer.timer_text))) / 2), (float)(visualizer.h / 2), visualizer.timer_text);
         SDL_RenderPresent(visualizer.renderer);
     };
 
