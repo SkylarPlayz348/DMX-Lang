@@ -10,8 +10,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC midi/src)
 
 project(${CMAKE_PROJECT_NAME})
 
-set(BUILD_SHARED_LIBS OFF)
-
 set(SDL_AUDIO OFF)
 set(SDL_CAMERA OFF)
 set(SDL_HAPTIC OFF)
@@ -23,3 +21,4 @@ add_subdirectory(SDL)
 
 add_library(vendor INTERFACE)
 target_link_libraries(vendor INTERFACE SDL3::SDL3 midi)
+target_compile_options(vendor INTERFACE -O3)

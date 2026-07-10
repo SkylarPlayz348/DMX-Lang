@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <midi.h>
 #include "dmx-interpreter.h"
@@ -47,10 +48,24 @@ int main(int argc, char **argv)
         return -1;
     }
     printf("Parsed DMX File\n");
+    if(dmxd.alias[0] && dmx.controller[0] && strcmp(dmx.controller, dmxd.alias) != 0)
+    {
+        printf("Warning: DMX controller '%s' does not match DMXD alias '%s'\n",
+               dmx.controller, dmxd.alias);
+    }
     printf("Writing Midi File\n");
     if(!write_midi_file(argv[3], &dmx, &dmxd)){
         printf("Failed to Write Midi File\n");
+        fclose(dmx.handler);
+        fclose(dmxd.handler);
+        free(dmx.instructions);
+        free(dmxd.commands);
+        return -1;
     }
     printf("Wrote Midi File\n");
     fclose(dmx.handler);
+    fclose(dmxd.handler);
+    free(dmx.instructions);
+    free(dmxd.commands);
+    return 0;
 }
