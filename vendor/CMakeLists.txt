@@ -1,19 +1,10 @@
-project(midi)
-
-set(SOURCES
-    midi/src/midi_helper.c
-    midi/src/midi.c
-)
-
-add_library(${PROJECT_NAME} ${SOURCES})
-target_include_directories(${PROJECT_NAME} PUBLIC midi/src)
-
 project(${CMAKE_PROJECT_NAME})
+
+add_subdirectory(midi)
 
 set(SDL_AUDIO OFF)
 set(SDL_CAMERA OFF)
 set(SDL_HAPTIC OFF)
-set(SDL_JOYSTICK OFF)
 set(SDL_POWER OFF)
 set(SDL_SENSOR OFF)
 

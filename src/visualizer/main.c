@@ -159,6 +159,7 @@ void SDLCALL file_dialog_handler(void *userdata, const char * const *files, int 
     while (*files) {
         const char *dot = strrchr(*files, '.');
         if(!dot)
+            files++;
             continue;
         const char*ext = dot+1;
 

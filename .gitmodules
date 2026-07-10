@@ -3,4 +3,4 @@
 	url = https://github.com/libsdl-org/SDL.git
 [submodule "vendor/midi"]
 	path = vendor/midi
-	url = https://github.com/pvrs12/midi_library
+	url = https://github.com/SkylarPlayz348/midi_library

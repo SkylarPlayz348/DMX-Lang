@@ -18,7 +18,7 @@ uint32_t seconds_to_ticks(int seconds, int bpm)
     return (uint32_t)((double)seconds * bpm / 60.0 * TICKS_PER_QUARTER);
 }
 
-void emit_trigger(struct MidiTrackChunk *track, struct EventString *e, int channel, int note, uint32_t lead_ticks)
+void emit_trigger(MidiTrackChunk *track, EventString *e, int channel, int note, uint32_t lead_ticks)
 {
     e = new_event_string(e);
     e = add_voice_message(e, VOICE_NOTE_ON, (uint8_t)channel);
@@ -41,7 +41,7 @@ bool write_midi_file(char *midi_file, DMX_File *dmx, const DMXD_File *dmxd)
 
     printf("BPM Set\n");
 
-    struct Midi *m = malloc(sizeof(struct Midi));
+    Midi *m = malloc(sizeof(Midi));
     if(!m)
         return false;
     new_midi(m);
@@ -49,10 +49,10 @@ bool write_midi_file(char *midi_file, DMX_File *dmx, const DMXD_File *dmxd)
 
     printf("Generated MIDI Header\n");
 
-    struct MidiTrackChunk *track = midi_add_track(m);
+    MidiTrackChunk *track = midi_add_track(m);
     printf("Generated MIDI Track\n");
 
-    struct EventString *e = malloc(sizeof(struct EventString));
+    EventString *e = malloc(sizeof(EventString));
     if(!e)
     {
         free_midi(m);
