@@ -190,7 +190,7 @@ void SDLCALL file_dialog_handler(void *userdata, const char * const *files, int 
         return;
     }
 
-    if(visualizer_load_sequence(&visualizer->dmx, &visualizer->dmxd))
+    if(!visualizer_load_sequence(&visualizer->dmx, &visualizer->dmxd))
     {
         SDL_SetAtomicInt(&visualizer->running, 1);
         return;
