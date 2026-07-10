@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include <SDL3/SDL.h>
 
@@ -7,8 +8,8 @@
 
 typedef enum VisualizerColor
 {
-    VISUALIZER_BLACKOUT=-1,
-    VISUALIZER_RED=0,
+    VISUALIZER_BLACKOUT=0,
+    VISUALIZER_RED,
     VISUALIZER_GREEN,
     VISUALIZER_BLUE,
     VISUALIZER_AMBER,
@@ -27,10 +28,15 @@ typedef struct VisualizerAppData
     SDL_AtomicInt timer_ms;
     char timer_text[256];
     int w,h;
+    bool ready;
 
-    DMX_File *dmx;
-    DMXD_File *dmxd;
+    DMX_File dmx;
+    DMXD_File dmxd;
 } VisualizerAppData;
+
+static const SDL_DialogFileFilter filters[] = {
+    { "DMX-Lang", "dmx;dmxd" },
+};
 
 /* Future Proofing when I actually get assets */
 void change_theme(VisualizerAppData visualizer)
@@ -101,14 +107,16 @@ int playback(void *data)
     VisualizerAppData *visualizer = (VisualizerAppData *) data;
     while(SDL_GetAtomicInt(&visualizer->running))
     {
-        if(visualizer->dmx->instruction_count == 0)
+        if(!visualizer->ready)
+            continue;
+        if(visualizer->dmx.instruction_count == 0)
             continue;
 
         VisualizerColor color = VISUALIZER_RED;
 
-        for(int i = 0; i < visualizer->dmx->instruction_count && SDL_GetAtomicInt(&visualizer->running); i++)
+        for(int i = 0; i < visualizer->dmx.instruction_count && SDL_GetAtomicInt(&visualizer->running); i++)
         {
-            const DMX_Instruction *instr = &visualizer->dmx->instructions[i];
+            const DMX_Instruction *instr = &visualizer->dmx.instructions[i];
 
             if(instr->kind == INSTR_DELAY)
             {
@@ -133,15 +141,49 @@ int timer(void* data){
     return 0;
 }
 
-int *file_dialog_handler(void *userdata, const char * const *filelist, int filter)
+void SDLCALL file_dialog_handler(void *userdata, const char * const *files, int filter)
 {
-    SDL_Log("File Dialog Handled(NOT)");
-    return 0;
+    VisualizerAppData *visualizer = (VisualizerAppData *)userdata;
+    if(files == NULL)
+    {
+        return;
+    }
+    if(*files == NULL)
+    {
+        return;
+    }
+    while (*files) {
+        const char *dot = strrchr(*files, '.');
+        if(!dot)
+            continue;
+        const char*ext = dot+1;
+
+        SDL_Log("%s", ext);
+        if(strcmp(ext, "dmx") == 0)
+        {
+            visualizer->dmx.handler = fopen(*files,"r");
+            SDL_Log("Read: %s", *files);
+            files++;
+            continue;
+        }
+
+        if(strcmp(ext, "dmxd") == 0)
+        {
+            visualizer->dmxd.handler = fopen(*files,"r");
+            SDL_Log("Read: %s", *files);
+            files++;
+            continue;
+        }
+
+        files++;
+    }
+
+    visualizer->ready = true;
 }
 
 int main()
 {
-    VisualizerAppData visualizer;
+    VisualizerAppData visualizer = {0};
     if(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
     {
         SDL_Log("Failed to Load SDL3: %s", SDL_GetError());
@@ -156,7 +198,7 @@ int main()
     visualizer.playback_thread = SDL_CreateThread(timer, "Playback Thread", &visualizer);
     SDL_GetWindowSize(visualizer.window, &visualizer.w, &visualizer.h);
     const int debug_charsize = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
-    // SDL_ShowOpenFileDialog(file_dialog_handler, NULL, visualizer.window, NULL, NULL, NULL, false);
+    SDL_ShowOpenFileDialog(&file_dialog_handler, &visualizer, visualizer.window, filters, SDL_arraysize(filters), NULL, true); // pass visualizer data so we can read and wite to the dmx and dmxd members
     SDL_SetAtomicInt(&visualizer.running, 1);
     while(SDL_GetAtomicInt(&visualizer.running) == 1)
     {
@@ -177,9 +219,6 @@ int main()
         };
         render_color(&visualizer);
         SDL_RenderClear(visualizer.renderer);
-        // clear_console();
-        SDL_Log("Visualizer Color: %i\nDelta: %i", visualizer.color, SDL_GetAtomicInt(&visualizer.timer_ms));
-        // SDL_Log("Timer: %i", visualizer.timer);
         sprintf(visualizer.timer_text, "Delta: %i", SDL_GetAtomicInt(&visualizer.timer_ms));
         int remaining_ms = SDL_GetAtomicInt(&visualizer.timer_ms);
         if(remaining_ms > 0)
