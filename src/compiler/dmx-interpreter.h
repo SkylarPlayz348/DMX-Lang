@@ -58,3 +58,4 @@ bool check_dmx_file(DMX_File *dmx);
 bool load_dmxd_file(DMXD_File *dmxd);
 bool parse_dmx_file(DMX_File *dmx);
 bool resolve_note(DMXD_File *dmxd, DMX_Instruction *instr, int *note_out);
+bool visualizer_load_sequence(DMX_File *dmx, DMXD_File *dmxd);

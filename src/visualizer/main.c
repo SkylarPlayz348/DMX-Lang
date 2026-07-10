@@ -61,6 +61,7 @@ void render_color(VisualizerAppData* visualizer)
     {
         case VISUALIZER_BLACKOUT:
             SDL_SetRenderDrawColor(visualizer->renderer, 0, 0, 0, 255);
+            break;
         case VISUALIZER_RED:
             SDL_SetRenderDrawColor(visualizer->renderer, 255, 0, 0, 255);
             break;
@@ -174,10 +175,26 @@ void SDLCALL file_dialog_handler(void *userdata, const char * const *files, int 
             files++;
             continue;
         }
-
         files++;
     }
 
+    if(!visualizer->dmx.handler)
+    {
+        SDL_SetAtomicInt(&visualizer->running, 0);
+        return;
+    }
+
+    if(!visualizer->dmxd.handler)
+    {
+        SDL_SetAtomicInt(&visualizer->running, 1);
+        return;
+    }
+
+    if(visualizer_load_sequence(&visualizer->dmx, &visualizer->dmxd))
+    {
+        SDL_SetAtomicInt(&visualizer->running, 1);
+        return;
+    }
     visualizer->ready = true;
 }
 
@@ -195,7 +212,7 @@ int main()
         SDL_Quit();
         return -1;
     }
-    visualizer.playback_thread = SDL_CreateThread(timer, "Playback Thread", &visualizer);
+    visualizer.playback_thread = SDL_CreateThread(playback, "Playback Thread", &visualizer);
     SDL_GetWindowSize(visualizer.window, &visualizer.w, &visualizer.h);
     const int debug_charsize = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
     SDL_ShowOpenFileDialog(&file_dialog_handler, &visualizer, visualizer.window, filters, SDL_arraysize(filters), NULL, true); // pass visualizer data so we can read and wite to the dmx and dmxd members
