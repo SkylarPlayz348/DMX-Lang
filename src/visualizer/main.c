@@ -254,7 +254,7 @@ int main()
                     SDL_SetRenderDrawColor(visualizer.renderer, 255, 255, 255, 255);
             SDL_RenderDebugText(visualizer.renderer, (float)((visualizer.w - (debug_charsize *strlen(visualizer.timer_text))) / 2), (float)(visualizer.h / 2), visualizer.timer_text);
         }
-        SDL_RenderDebugText(visualizer.Renderer, 10.0f, visualizer.h % 90.0f, "Compiled with Version: v%i.%i.%i-%s", DMXLANG_VERSION_MAJOR, DMXLANG_VERSION_MINOR, DMXLANG_VERSION_PATCH, DMX_LANG_COMPILED_OS);
+        SDL_RenderDebugText(visualizer.renderer, 10.0f, (float) visualizer.h % 90.0f, "Compiled with Version: v%i.%i.%i-%s", DMXLANG_VERSION_MAJOR, DMXLANG_VERSION_MINOR, DMXLANG_VERSION_PATCH, DMX_LANG_COMPILED_OS);
         SDL_RenderPresent(visualizer.renderer);
     };
 
