@@ -256,7 +256,7 @@ int main()
                     SDL_SetRenderDrawColor(visualizer.renderer, 255, 255, 255, 255);
             SDL_RenderDebugText(visualizer.renderer, (float)((visualizer.w - (debug_charsize *strlen(visualizer.timer_text))) / 2), (float)(visualizer.h / 2), visualizer.timer_text);
         }
-        float width = visualizer.h * 90.0f;
+        float width = visualizer.h / 10.0f;
         SDL_RenderDebugText(visualizer.renderer, 10.0f, width, "Compiled with Version: v0.0.8");
         SDL_RenderPresent(visualizer.renderer);
     };
