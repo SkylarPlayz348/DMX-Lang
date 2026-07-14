@@ -31,7 +31,8 @@ bool check_dmx_file(DMX_File *dmx)
 {
     char dmx_check[12];
     char controller[12] = ".controller";
-    fgets(dmx_check, 12, dmx->handler);
+    if(!fgets(dmx_check, 12, dmx->handler))
+        return false;
     if(strncmp(dmx_check, controller, 12) != 0)
     {
         return false;
@@ -57,7 +58,7 @@ bool load_dmxd_file(DMXD_File *dmxd)
         char keypart[200];
         size_t klen = (size_t)(eq-dmxd_line);
         if(klen >= sizeof(keypart))
-            klen - sizeof(keypart) -1;
+            klen = sizeof(keypart) - 1;
 
         strncpy(keypart, dmxd_line, klen);
         keypart[klen]= 0;
