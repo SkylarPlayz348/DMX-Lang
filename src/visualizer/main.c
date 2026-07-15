@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 
 #include "../compiler/dmx-interpreter.h"
 #include "../version.h"

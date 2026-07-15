@@ -11,5 +11,5 @@ set(SDL_SENSOR OFF)
 add_subdirectory(SDL)
 
 add_library(vendor INTERFACE)
-target_link_libraries(vendor INTERFACE SDL3::SDL3 midi)
+target_link_libraries(vendor INTERFACE SDL3::SDL3 SDL3::SDL3main midi)
 target_compile_options(vendor INTERFACE -O3)
