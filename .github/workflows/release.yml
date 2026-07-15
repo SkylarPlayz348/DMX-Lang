@@ -54,6 +54,18 @@ jobs:
           --target dmxc
           --target dmx-lang-visualizer
 
+      - name: Configure CMake (Debug, validation only)
+        run: >
+          cmake -B build-debug
+          -DCMAKE_BUILD_TYPE=Debug
+          -DBUILD_SHARED_LIBS=OFF
+
+      - name: Build (Debug, validation only)
+        run: >
+          cmake --build build-debug --config Debug
+          --target dmxc
+          --target dmx-lang-visualizer
+
       - name: Stage binaries
         shell: bash
         run: |
@@ -65,23 +77,40 @@ jobs:
           cp build/Release/dmxc* dist/
           cp build/Release/dmx-lang-visualizer* dist/
 
+      - name: Stage binaries (Debug)
+        shell: bash
+        run: |
+          set -e
+          mkdir dist-debug
+          cp build-debug/Debug/dmxc* dist-debug/
+          cp build-debug/Debug/dmx-lang-visualizer* dist-debug/
+
       - name: Package (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
-        run: Compress-Archive -Path dist/* -DestinationPath dmx-lang-${{ matrix.platform }}.zip
+        run: |
+          Compress-Archive -Path dist/* -DestinationPath dmx-lang-${{ matrix.platform }}.zip
+          Compress-Archive -Path dist-debug/* -DestinationPath debug-dmx-lang-${{ matrix.platform }}.zip
 
       - name: Package (Unix)
         if: matrix.os != 'windows-latest'
         shell: bash
         run: |
           set -e
-          cd dist
-          zip -r ../dmx-lang-${{ matrix.platform }}.zip .
+          (cd dist && zip -r ../dmx-lang-${{ matrix.platform }}.zip .)
+          (cd dist-debug && zip -r ../debug-dmx-lang-${{ matrix.platform }}.zip .)
 
       - uses: actions/upload-artifact@v4
         with:
           name: dmx-lang-${{ matrix.platform }}
           path: dmx-lang-${{ matrix.platform }}.zip
+          if-no-files-found: error
+
+      - name: Upload artifacts (Debug, validation only, not attached to releases)
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-dmx-lang-${{ matrix.platform }}
+          path: debug-dmx-lang-${{ matrix.platform }}.zip
           if-no-files-found: error
 
   release-tag:
@@ -95,6 +124,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: dmx-lang-*
           merge-multiple: true
 
       - uses: softprops/action-gh-release@v2
@@ -119,6 +149,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: dmx-lang-*
           merge-multiple: true
 
       - uses: softprops/action-gh-release@v2

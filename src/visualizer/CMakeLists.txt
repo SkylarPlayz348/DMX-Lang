@@ -7,4 +7,9 @@ set(SOURCES
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    WIN32_EXECUTABLE $<$<CONFIG:Release>:TRUE>
+)
+
+
 target_link_libraries(${PROJECT_NAME} vendor)
