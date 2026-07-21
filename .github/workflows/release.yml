@@ -113,6 +113,51 @@ jobs:
           path: debug-dmx-lang-${{ matrix.platform }}.zip
           if-no-files-found: error
 
+  build-web:
+    name: Build web (Emscripten, validation only)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - uses: mymindstorm/setup-emsdk@v14
+
+      - name: Configure CMake (Emscripten)
+        run: >
+          emcmake cmake -B build-web
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: >
+          cmake --build build-web --config Release
+          --target dmx-lang-visualizer-web
+
+      - name: Stage web build
+        shell: bash
+        run: |
+          set -e
+          mkdir dist-web
+          cp build-web/Release/dmx-lang-visualizer-web.html dist-web/
+          cp build-web/Release/dmx-lang-visualizer-web.js dist-web/
+          cp build-web/Release/dmx-lang-visualizer-web.wasm dist-web/
+
+      - name: Package
+        shell: bash
+        run: |
+          set -e
+          (cd dist-web && zip -r ../web-dmx-lang.zip .)
+
+      - name: Upload artifact (web, validation only, not attached to releases)
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dmx-lang
+          path: web-dmx-lang.zip
+          if-no-files-found: error
+
   release-tag:
     name: Publish tagged release
     needs: build
