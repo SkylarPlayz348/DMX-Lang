@@ -61,6 +61,10 @@ int main(int argc, char **argv)
     if(dmxd.alias[0] && dmx.controller[0] && strcmp(dmx.controller, dmxd.alias) != 0)
     {
         printf("Warning: DMX controller '%s' does not match DMXD alias '%s'\n", dmx.controller, dmxd.alias);
+        fclose(dmx.handler);
+        fclose(dmxd.handler);
+        free(dmx.instructions);
+        free(dmxd.commands);
         return -1;
     }
     printf("Writing Midi File\n");

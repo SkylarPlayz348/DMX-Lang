@@ -43,6 +43,7 @@ bool check_dmx_file(DMX_File *dmx)
 bool load_dmxd_file(DMXD_File *dmxd)
 {
     char dmxd_line[256];
+    int cap = 0;
     while(fgets(dmxd_line, sizeof(dmxd_line), dmxd->handler))
     {
         if(sscanf(dmxd_line, ".alias%63s", dmxd->alias) == 1)
@@ -95,14 +96,19 @@ bool load_dmxd_file(DMXD_File *dmxd)
             command.num = (n == 2) ? atoi(rest) : -1;
         }
 
-        DMXD_Command *grown = realloc(dmxd->commands, sizeof(DMXD_Command) *(dmxd->command_count + 1));
-        if(!grown)
+        if(dmxd->command_count >= cap)
         {
-            printf("Failed to allocate memory for command: %s\n", name);
-            return false;
+            int new_cap = cap ? cap * 2 : 16;
+            DMXD_Command *grown = realloc(dmxd->commands, sizeof(DMXD_Command) * new_cap);
+            if(!grown)
+            {
+                printf("Failed to allocate memory for command: %s\n", name);
+                return false;
+            }
+            dmxd->commands = grown;
+            cap = new_cap;
         }
 
-        dmxd->commands = grown;
         dmxd->commands[dmxd->command_count++] = command;
         printf("Found Command: %s\n", name);
     }
@@ -274,6 +280,13 @@ bool parse_dmx_file(DMX_File *dmx)
         snprintf(lines[nlines++], 256, "%s", raw);
     }
 
+    if(!in_commands)
+    {
+        free(lines);
+        printf("Error: Missing '.commands' section\n");
+        return false;
+    }
+
     InstrList program = {0};
     int idx = 0;
     bool ok = parse_block(lines, nlines, &idx, &program, false);
@@ -336,12 +349,14 @@ bool visualizer_load_sequence(DMX_File *dmx, DMXD_File *dmxd)
     if(!load_dmxd_file(dmxd))
     {
         printf("Failed to Load DMX Definitions\n");
+        free(dmxd->commands);
         return false;
     }
     printf("Parsing DMX File\n");
     if(!parse_dmx_file(dmx))
     {
         printf("Failed to parse DMX File\n");
+        free(dmxd->commands);
         return false;
     }
     printf("Parsed DMX File\n");
@@ -349,6 +364,8 @@ bool visualizer_load_sequence(DMX_File *dmx, DMXD_File *dmxd)
     {
         printf("Warning: DMX controller '%s' does not match DMXD alias '%s'\n",
                dmx->controller, dmxd->alias);
+        free(dmx->instructions);
+        free(dmxd->commands);
         return false;
     }
     return true;
