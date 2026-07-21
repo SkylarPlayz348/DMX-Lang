@@ -1,4 +1,4 @@
-project(dmx-lang-visualizer-web VERSION 0.0.1)
+project(dmx-lang-visualizer-web VERSION 0.0.5)
 
 if(EMSCRIPTEN)
   set(CMAKE_EXECUTABLE_SUFFIX ".html")

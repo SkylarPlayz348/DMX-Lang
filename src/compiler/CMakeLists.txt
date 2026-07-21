@@ -1,4 +1,4 @@
-project(dmxc)
+project(dmxc) # No Version as this is all logic for the main language
 
 set(SOURCES
     dmx-interpreter.c
