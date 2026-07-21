@@ -26,6 +26,7 @@ int main(int argc, char **argv)
     if(!check_dmx_file(&dmx))
     {
         printf("Input file is not a valid DMX File\n");
+        fclose(dmx.handler);
         return -1;
     }
     printf("Valid DMX File\n");
@@ -33,25 +34,34 @@ int main(int argc, char **argv)
     if(!dmxd.handler)
     {
         printf("Failed to Open DMXD File\n");
+        fclose(dmx.handler);
         return -1;
     }
     printf("Loading DMXD Definitions\n");
     if(!load_dmxd_file(&dmxd))
     {
         printf("Failed to Load DMX Definitions\n");
+        fclose(dmx.handler);
+        fclose(dmxd.handler);
+        free(dmx.instructions);
+        free(dmxd.commands);
         return -1;
     }
     printf("Parsing DMX File\n");
     if(!parse_dmx_file(&dmx))
     {
         printf("Failed to parse DMX File\n");
+        fclose(dmx.handler);
+        fclose(dmxd.handler);
+        free(dmx.instructions);
+        free(dmxd.commands);
         return -1;
     }
     printf("Parsed DMX File\n");
-    if(dmxd.alias[0] && dmx.controller[0] && strcmp(dmx.controller, dmxd.alias) != 0)
+    if(dmxd->alias[0] && dmx->controller[0] && strcmp(dmx->controller, dmxd->alias) != 0)
     {
-        printf("Warning: DMX controller '%s' does not match DMXD alias '%s'\n",
-               dmx.controller, dmxd.alias);
+        printf("Warning: DMX controller '%s' does not match DMXD alias '%s'\n", dmx->controller, dmxd->alias);
+        return -1;
     }
     printf("Writing Midi File\n");
     if(!write_midi_file(argv[3], &dmx, &dmxd)){

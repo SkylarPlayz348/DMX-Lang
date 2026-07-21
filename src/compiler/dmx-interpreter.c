@@ -141,7 +141,7 @@ bool list_append(InstrList *dst, const InstrList *src)
     return true;
 }
 
-bool parse_block(char (*lines)[256], int nlines, int *idx, InstrList *out)
+bool parse_block(char (*lines)[256], int nlines, int *idx, InstrList *out, bool require_end)
 {
     while(*idx < nlines)
     {
@@ -156,7 +156,7 @@ bool parse_block(char (*lines)[256], int nlines, int *idx, InstrList *out)
             continue;
         }
 
-        if(strcmp(verb, "end") == 0)
+        if(strcmp(verb, "end") == 0 && require_end)
         {
             (*idx)++;
             return true;
@@ -169,7 +169,7 @@ bool parse_block(char (*lines)[256], int nlines, int *idx, InstrList *out)
             (*idx)++;
 
             InstrList body = {0};
-            if(!parse_block(lines, nlines, idx, &body))
+            if(!parse_block(lines, nlines, idx, &body, true))
             {
                 free(body.items);
                 return false;
@@ -211,6 +211,12 @@ bool parse_block(char (*lines)[256], int nlines, int *idx, InstrList *out)
         if(!list_push(out, instr))
             return false;
         (*idx)++;
+    }
+
+    if(require_end)
+    {
+        printf("Error: Missing 'end' for 'loop' block\n");
+        return false;
     }
     return true;
 }
@@ -270,7 +276,7 @@ bool parse_dmx_file(DMX_File *dmx)
 
     InstrList program = {0};
     int idx = 0;
-    bool ok = parse_block(lines, nlines, &idx, &program);
+    bool ok = parse_block(lines, nlines, &idx, &program, false);
     free(lines);
 
     if(!ok){
