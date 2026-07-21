@@ -26,15 +26,20 @@ typedef struct VisualizerAppData
     SDL_Renderer *renderer;
     SDL_Event event;
     SDL_SystemTheme theme;
-    SDL_Thread *playback_thread;
-    SDL_AtomicInt running;
+    bool running;
     VisualizerColor color;
-    SDL_AtomicInt timer_ms;
+    int timer_ms;
     char timer_text[256];
     char version_text[256];
     int w,h;
-    SDL_AtomicInt ready;
+    bool ready;
     bool blackout;
+
+    /* Single-threaded playback state: the web build has no pthreads
+     * (see CMakeLists.txt), so the instruction sequence is advanced a
+     * little at a time from mainloop() instead of a background thread. */
+    int program_counter;
+    Uint64 delay_until_ms;
 
     DMX_File dmx;
     bool dmx_opened;
@@ -96,59 +101,54 @@ void change_color(VisualizerAppData *visualizer)
         visualizer->color++;
 }
 
-void interruptible_delay(VisualizerAppData *visualizer, int ms, bool countdown)
+/* Advances the instruction sequence by however much fits in one frame.
+ * Runs on the main thread (no pthreads on web) so it must never block:
+ * a delta instruction schedules a future wake-up time instead of
+ * sleeping, and the bounded loop below guarantees this returns within
+ * one pass through the program even if it contains no delta at all. */
+void playback_tick(VisualizerAppData *visualizer)
 {
-    while(ms > 0 && SDL_GetAtomicInt(&visualizer->running))
+    if(!visualizer->ready)
+        return;
+    if(visualizer->dmx.instruction_count == 0)
+        return;
+
+    Uint64 now = SDL_GetTicks();
+
+    if(visualizer->delay_until_ms > 0)
     {
-        if(countdown)
-            SDL_SetAtomicInt(&visualizer->timer_ms, ms);
-        int chunk = ms > 50 ? 50 : ms;
-        SDL_Delay((Uint32)chunk);
-        ms -= chunk;
+        if(now < visualizer->delay_until_ms)
+        {
+            visualizer->timer_ms = (int)(visualizer->delay_until_ms - now);
+            return;
+        }
+        visualizer->delay_until_ms = 0;
+        visualizer->timer_ms = 0;
     }
-    if(countdown)
-        SDL_SetAtomicInt(&visualizer->timer_ms, 0);
-}
 
-int playback(void *data)
-{
-    VisualizerAppData *visualizer = (VisualizerAppData *) data;
-    while(SDL_GetAtomicInt(&visualizer->running))
+    for(int processed = 0; processed < visualizer->dmx.instruction_count; processed++)
     {
-        if(!SDL_GetAtomicInt(&visualizer->ready))
+        const DMX_Instruction *instr = &visualizer->dmx.instructions[visualizer->program_counter];
+        visualizer->program_counter = (visualizer->program_counter + 1) % visualizer->dmx.instruction_count;
+
+        if(instr->kind == INSTR_DELAY)
         {
-            SDL_Delay(10);
-            continue;
+            visualizer->delay_until_ms = now + (Uint64)instr->seconds * 1000;
+            visualizer->timer_ms = instr->seconds * 1000;
+            return;
         }
-        if(visualizer->dmx.instruction_count == 0)
+
+        bool is_blackout = strcmp(instr->command, "blackout") == 0;
+        if(is_blackout)
         {
-            SDL_Delay(10);
-            continue;
-        }
-
-        for(int i = 0; i < visualizer->dmx.instruction_count && SDL_GetAtomicInt(&visualizer->running); i++)
-        {
-            const DMX_Instruction *instr = &visualizer->dmx.instructions[i];
-
-            if(instr->kind == INSTR_DELAY)
-            {
-                interruptible_delay(visualizer, instr->seconds * 1000, true);
-                continue;
-            }
-
-            bool is_blackout = strcmp(instr->command, "blackout") == 0;
-            if(is_blackout)
-            {
-                if((visualizer->blackout = !visualizer->blackout))
-                    visualizer->color = VISUALIZER_BLACKOUT;
-                change_color(visualizer);
-                continue;
-            }
-
+            if((visualizer->blackout = !visualizer->blackout))
+                visualizer->color = VISUALIZER_BLACKOUT;
             change_color(visualizer);
+            continue;
         }
+
+        change_color(visualizer);
     }
-    return 0;
 }
 
 /* --- Web file intake ---------------------------------------------------
@@ -214,7 +214,7 @@ static void try_finalize(VisualizerAppData *v)
 {
     if(!v->dmx.handler || !v->dmxd.handler)
         return;
-    if(SDL_GetAtomicInt(&v->ready))
+    if(v->ready)
         return;
 
     if(!visualizer_load_sequence(&v->dmx, &v->dmxd))
@@ -222,7 +222,7 @@ static void try_finalize(VisualizerAppData *v)
         SDL_Log("Error: Failed to Decode Sequence");
         return;
     }
-    SDL_SetAtomicInt(&v->ready, 1);
+    v->ready = true;
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -267,7 +267,7 @@ EM_JS(void, web_init_file_picker, (void), {
 
 void mainloop(void)
 {
-    if(!SDL_GetAtomicInt(&visualizer.running))
+    if(!visualizer.running)
     {
         SDL_DestroyWindow(visualizer.window);
         SDL_DestroyRenderer(visualizer.renderer);
@@ -281,7 +281,7 @@ void mainloop(void)
         switch(visualizer.event.type)
         {
             case SDL_EVENT_QUIT:
-                SDL_SetAtomicInt(&visualizer.running, 0);
+                visualizer.running = false;
                 break;
             case SDL_EVENT_SYSTEM_THEME_CHANGED:
                 visualizer.theme = SDL_GetSystemTheme();
@@ -291,10 +291,11 @@ void mainloop(void)
                 break;
         }
     };
+    playback_tick(&visualizer);
     render_color(&visualizer);
     SDL_RenderClear(visualizer.renderer);
-    sprintf(visualizer.timer_text, "Delta: %i", SDL_GetAtomicInt(&visualizer.timer_ms) / 1000);
-    int remaining_ms = SDL_GetAtomicInt(&visualizer.timer_ms);
+    sprintf(visualizer.timer_text, "Delta: %i", visualizer.timer_ms / 1000);
+    int remaining_ms = visualizer.timer_ms;
     Uint8 r, g, b, a;
     SDL_GetRenderDrawColor(visualizer.renderer, &r, &g, &b, &a);
     int luma = (r * 299 + g * 587 + b * 114) / 1000;
@@ -324,15 +325,12 @@ int main(void)
         SDL_Quit();
         return -1;
     }
-    SDL_SetAtomicInt(&visualizer.running, 1);
-    visualizer.playback_thread = SDL_CreateThread(playback, "Playback Thread", &visualizer);
-    if(!visualizer.playback_thread)
-        SDL_Log("Error: Failed to Create Playback Thread: %s", SDL_GetError());
     SDL_GetWindowSize(visualizer.window, &visualizer.w, &visualizer.h);
     snprintf(visualizer.version_text, sizeof(visualizer.version_text), "Compiled with Version: v%i.%i.%i", DMXLANG_VERSION_MAJOR, DMXLANG_VERSION_MINOR, DMXLANG_VERSION_PATCH);
 
     web_init_file_picker();
 
+    visualizer.running = true;
     emscripten_set_main_loop(mainloop, 0, 1);
     return 0;
 }
