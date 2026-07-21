@@ -1,5 +1,14 @@
 project(${CMAKE_PROJECT_NAME})
 
+if(EMSCRIPTEN)
+    # Every object linked into a threaded Emscripten build must be
+    # compiled with matching atomics/pthread flags, so this has to be
+    # set before SDL3/midi are configured, not just on the final
+    # executable target.
+    add_compile_options(-pthread)
+    add_link_options(-pthread)
+endif()
+
 add_subdirectory(midi)
 
 set(SDL_AUDIO OFF)
