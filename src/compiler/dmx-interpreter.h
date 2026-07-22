@@ -41,7 +41,6 @@ typedef struct DMXD_Command
     char name[32];
     CommandMode mode;
     int num;
-    int bank;
     int div;
     int base;
 } DMXD_Command;

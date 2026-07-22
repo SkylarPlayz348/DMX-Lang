@@ -11,9 +11,9 @@
 
 uint32_t seconds_to_ticks(int seconds, int bpm)
 {
-    if(seconds <= 0)
+    if (seconds <= 0)
         return 0;
-    if(bpm <= 0)
+    if (bpm <= 0)
         bpm = DEFAULT_BPM;
     return (uint32_t)((double)seconds * bpm / 60.0 * TICKS_PER_QUARTER);
 }
@@ -42,7 +42,7 @@ bool write_midi_file(char *midi_file, DMX_File *dmx, const DMXD_File *dmxd)
     printf("BPM Set\n");
 
     Midi *m = malloc(sizeof(Midi));
-    if(!m)
+    if (!m)
         return false;
     new_midi(m);
     midi_add_header(m, 0, 1, TICKS_PER_QUARTER);
@@ -53,7 +53,7 @@ bool write_midi_file(char *midi_file, DMX_File *dmx, const DMXD_File *dmxd)
     printf("Generated MIDI Track\n");
 
     EventString *e = malloc(sizeof(EventString));
-    if(!e)
+    if (!e)
     {
         free_midi(m);
         free(m);
@@ -74,8 +74,7 @@ bool write_midi_file(char *midi_file, DMX_File *dmx, const DMXD_File *dmxd)
     uint8_t tempo[3] = {
         (uint8_t)((us_per_quarter >> 16) & 0xFF),
         (uint8_t)((us_per_quarter >> 8) & 0xFF),
-        (uint8_t)(us_per_quarter & 0xFF)
-    };
+        (uint8_t)(us_per_quarter & 0xFF)};
     e = new_event_string(e);
     e = add_meta_message(e, META_SET_TEMPO);
     e = add_buffer(e, tempo, 3);
@@ -85,18 +84,18 @@ bool write_midi_file(char *midi_file, DMX_File *dmx, const DMXD_File *dmxd)
 
     long clock = 0;
     long scheduled = 0;
-    for(int i = 0; i < dmx->instruction_count; i++)
+    for (int i = 0; i < dmx->instruction_count; i++)
     {
         const DMX_Instruction *instr = &dmx->instructions[i];
 
-        if(instr->kind == INSTR_DELAY)
+        if (instr->kind == INSTR_DELAY)
         {
             scheduled += seconds_to_ticks(instr->seconds, bpm);
             continue;
         }
 
         int note = 0;
-        if(!resolve_note(dmxd, instr, &note))
+        if (!resolve_note(dmxd, instr, &note))
         {
             printf("Warning: no definition for '%s' (skipped)\n", instr->command);
             continue;
@@ -116,7 +115,7 @@ bool write_midi_file(char *midi_file, DMX_File *dmx, const DMXD_File *dmxd)
     free_event_string(e);
 
     FILE *f = fopen(midi_file, "wb+");
-    if(!f)
+    if (!f)
     {
         free_midi(m);
         free(m);

@@ -9,7 +9,6 @@ set(SOURCES
     ../compiler/dmx-interpreter.c
 )
 
-
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} vendor)
 target_compile_options(${PROJECT_NAME} PRIVATE -O3)
