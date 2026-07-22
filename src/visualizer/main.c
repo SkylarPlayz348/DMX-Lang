@@ -269,12 +269,12 @@ int main()
         SDL_Quit();
         return -1;
     }
+    SDL_SetAtomicInt(&visualizer.running, 1);
     visualizer.playback_thread = SDL_CreateThread(playback, "Playback Thread", &visualizer);
     SDL_GetWindowSize(visualizer.window, &visualizer.w, &visualizer.h);
     const int debug_charsize = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
     sprintf(visualizer.version_text, "Compiled with Version: v%i.%i.%i", DMXLANG_VERSION_MAJOR, DMXLANG_VERSION_MINOR, DMXLANG_VERSION_PATCH);
     SDL_ShowOpenFileDialog(&file_dialog_handler, &visualizer, visualizer.window, filters, SDL_arraysize(filters), NULL, true); // pass visualizer data so we can read and wite to the dmx and dmxd members
-    SDL_SetAtomicInt(&visualizer.running, 1);
     while (SDL_GetAtomicInt(&visualizer.running) == 1)
     {
         Uint32 frame_start = SDL_GetTicks();
