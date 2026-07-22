@@ -247,9 +247,9 @@ EM_JS(void, web_init_file_picker, (void), {
     input.style.display = 'none';
     document.body.appendChild(input);
 
-    button.addEventListener('click', () = > input.click());
+    button.addEventListener('click', () => input.click());
 
-    input.addEventListener('change', () = > {
+    input.addEventListener('change', () => {
         for (const file of input.files) {
             const reader = new FileReader();
             reader.onload = () => {
