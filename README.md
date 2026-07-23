@@ -1,5 +1,5 @@
 # DMX-Lang
-
+[![Release](https://github.com/SkylarPlayz348/DMX-Lang/actions/workflows/release.yml/badge.svg)](https://github.com/SkylarPlayz348/DMX-Lang/actions/workflows/release.yml)
 # **Very Much a Work In Progress**
 
 DMX Lang is a compiled language with similar syntax to assembly language using the GNU Assembler. In no way do you need to know how to code to use this as most of the programming is done using defined commands which are referenced on the fly to all for the most portability possible.
